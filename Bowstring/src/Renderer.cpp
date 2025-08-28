@@ -1,8 +1,13 @@
+// The Bowstring Vulkan Renderer
+// Refrences:
+//   - https://vulkan-tutorial.com/
+//   - https://vkguide.dev/
+//   - https://github.com/charles-lunarg/vk-bootstrap
+
 #include "Bowstring/Renderer.h"
 #include "Bowstring/Logging.h"
 #include "VkBootstrap.h"
 #include <cstdint>
-#include <regex>
 #include <stdexcept>
 #include <vulkan/vulkan_enums.hpp>
 
@@ -31,6 +36,12 @@ void bowstring::Renderer::initialize(bowstring::Window &window) {
 
   this->m_DeviceContainer = vkb::DeviceBuilder(physicalDevice).build().value();
   this->m_Device = this->m_DeviceContainer.device;
+
+  BS_LOG_DEBUG("Created Vulkan Instance: {}", (void *)this->m_Instance);
+  BS_LOG_DEBUG("Created Surface: {}", (void *)this->m_Surface);
+  BS_LOG_DEBUG("Selected Physical Device: {}",
+               (void *)physicalDevice.physical_device);
+  BS_LOG_DEBUG("Created Logical Device: {}", (void *)this->m_Device);
 
   this->createSwapchain(window.getWidth(), window.getHeight());
   this->retrieveQueues();
@@ -62,6 +73,12 @@ void bowstring::Renderer::createSyncObjects() {
         this->m_Device.createSemaphore(semaphoreCreateInfo);
     this->m_InFlightFences[i] = this->m_Device.createFence(fenceCreateInfo);
   }
+
+  BS_LOG_DEBUG("Created ImageAvailableSemaphores[{}]",
+               this->m_ImageAvailableSemaphores.size());
+  BS_LOG_DEBUG("Created RenderFinishedSemaphores[{}]",
+               this->m_RenderFinishedSemaphores.size());
+  BS_LOG_DEBUG("Created InFlightFences[{}]", this->m_InFlightFences.size());
 }
 
 void bowstring::Renderer::createCommandPool() {
@@ -73,7 +90,7 @@ void bowstring::Renderer::createCommandPool() {
 
   this->m_CommandPool =
       this->m_Device.createCommandPool(commandPoolCreateInfo, nullptr);
-  BS_LOG_DEBUG("Created CommandPool");
+  BS_LOG_DEBUG("Created Command Pool: {}", (void *)this->m_CommandPool);
 };
 
 void bowstring::Renderer::createCommandBuffers() {
@@ -86,7 +103,7 @@ void bowstring::Renderer::createCommandBuffers() {
 
   this->m_CommandBuffers =
       this->m_Device.allocateCommandBuffers(allocationInfo);
-  BS_LOG_DEBUG("Created Command Buffers");
+  BS_LOG_DEBUG("Created Command Buffers[{}]", this->m_CommandBuffers.size());
 }
 
 void bowstring::Renderer::createSwapchain(uint32_t width, uint32_t height) {
@@ -113,7 +130,11 @@ void bowstring::Renderer::createSwapchain(uint32_t width, uint32_t height) {
     this->m_SwapchainImageViews.push_back(imageView);
   }
 
-  BS_LOG_DEBUG("Created Swapchain");
+  BS_LOG_DEBUG("Created Swapchain with {} images",
+               this->m_SwapchainImages.size(),
+               this->m_SwapchainImageViews.size());
+
+  BS_LOG_DEBUG("Destroyed old Swapchain");
 };
 
 void bowstring::Renderer::cleanupSwapchain() {
@@ -136,7 +157,8 @@ void bowstring::Renderer::retrieveQueues() {
   this->m_GraphicsQueue = graphicsQueueResult.value();
   this->m_PresentQueue = presentQueueResult.value();
 
-  BS_LOG_DEBUG("Retrieved G & P Queues");
+  BS_LOG_DEBUG("Graphics Queue: {}", (void *)this->m_GraphicsQueue);
+  BS_LOG_DEBUG("Present Queue: {}", (void *)this->m_PresentQueue);
 };
 
 void bowstring::Renderer::setClearColor(vk::ClearColorValue color) {
