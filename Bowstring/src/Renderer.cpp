@@ -4,12 +4,12 @@
 //   - https://vkguide.dev/
 //   - https://github.com/charles-lunarg/vk-bootstrap
 
+#include "Bowstring/pch.hpp"
 #include "Bowstring/Renderer.h"
 #include "Bowstring/Logging.h"
 #include "VkBootstrap.h"
 #include <cstdint>
 #include <stdexcept>
-#include <vulkan/vulkan_enums.hpp>
 
 void bowstring::Renderer::initialize(bowstring::Window &window) {
   this->m_InstanceContainer = vkb::InstanceBuilder()

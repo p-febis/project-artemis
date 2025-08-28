@@ -1,8 +1,7 @@
+#include "Bowstring/pch.hpp"
 #include "Bowstring/Window.h"
 #include "Bowstring/Logging.h"
-#include "GLFW/glfw3.h"
 #include <stdexcept>
-#include <vulkan/vulkan_core.h>
 
 bowstring::Window::Window(uint32_t width, uint32_t height, const char *title)
     : m_Width(width), m_Height(height) {

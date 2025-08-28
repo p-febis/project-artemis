@@ -1,6 +1,6 @@
-#include "Bowstring/Application.h"
+#include "Bowstring/pch.hpp"
 #include "Bowstring/Logging.h"
-#include <vulkan/vulkan_handles.hpp>
+#include "Bowstring/Application.h"
 
 bowstring::Application::Application(ApplicationConfig &config)
     : m_Config(config),

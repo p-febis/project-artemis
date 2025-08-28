@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Bowstring/pch.hpp"
 #include "Window.h"
 #include "Renderer.h"
 #include <cstdint>
-#include <glm/glm.hpp>
 
 namespace bowstring {
 struct ApplicationConfig {

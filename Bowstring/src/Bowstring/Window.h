@@ -1,8 +1,9 @@
 #pragma once
+
 #include <cstdint>
 #include <functional>
 #include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
+#include "Bowstring/pch.hpp"
 
 namespace bowstring {
 class Window {

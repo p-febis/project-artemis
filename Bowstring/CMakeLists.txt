@@ -2,6 +2,10 @@ add_library(Bowstring INTERFACE)
 
 find_package(Vulkan REQUIRED)
 
+add_library(Bowstring_PCH INTERFACE)
+target_sources(Bowstring_PCH INTERFACE src/Bowstring/pch.hpp)
+target_include_directories(Bowstring_PCH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 function(add_bowstring_module name)
   add_library(Bowstring_${name} SHARED ${ARGN})
 
@@ -18,7 +22,7 @@ function(add_bowstring_module name)
     target_compile_options(Bowstring_${name} PRIVATE -Wall -Wextra -Wpedantic)
   endif()
 
-  target_link_libraries(Bowstring INTERFACE Bowstring_${name})
+  target_link_libraries(Bowstring INTERFACE Bowstring_${name} Bowstring_PCH)
 endfunction()
 
 
@@ -35,7 +39,7 @@ add_bowstring_module(
   src/Bowstring/Window.h
   src/Window.cpp
 )
-target_link_libraries(Bowstring_Window PUBLIC Bowstring_Logging glfw)
+target_link_libraries(Bowstring_Window PUBLIC Bowstring_Logging glm glfw)
 
 add_bowstring_module(
   Renderer
