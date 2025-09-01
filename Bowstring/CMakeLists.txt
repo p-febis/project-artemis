@@ -42,11 +42,19 @@ add_bowstring_module(
 target_link_libraries(Bowstring_Window PUBLIC Bowstring_Logging glm glfw)
 
 add_bowstring_module(
+  VMA
+  src/Bowstring/VMA.h
+  src/VMA.cpp
+)
+
+target_link_libraries(Bowstring_VMA PUBLIC VulkanMemoryAllocator)
+
+add_bowstring_module(
   Renderer
   src/Bowstring/Renderer.h
   src/Renderer.cpp
 )
-target_link_libraries(Bowstring_Renderer PUBLIC Bowstring_Window vk-bootstrap::vk-bootstrap Vulkan::Vulkan)
+target_link_libraries(Bowstring_Renderer PUBLIC Bowstring_Window vk-bootstrap::vk-bootstrap Vulkan::Vulkan VulkanMemoryAllocator Bowstring_VMA)
 
 add_bowstring_module(
   Application
@@ -54,3 +62,12 @@ add_bowstring_module(
   src/Application.cpp
 )
 target_link_libraries(Bowstring_Application PUBLIC Bowstring_Renderer glm)
+
+add_bowstring_module(
+  Mesh
+  src/Bowstring/Mesh.h
+  src/Mesh.cpp
+)
+
+target_link_libraries(Bowstring_Mesh PUBLIC Bowstring_Renderer glm VulkanMemoryAllocator)
+

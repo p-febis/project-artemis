@@ -1,23 +1,30 @@
 #pragma once
 
+#include "Bowstring/VMA.h"
+#include "Bowstring/MeshType.h"
 #include "Bowstring/Window.h"
-#include "Bowstring/pch.hpp"
 #include <VkBootstrap.h>
 #include <functional>
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 namespace bowstring {
+class Mesh;
 class Renderer {
 public:
   void initialize(Window &window);
   void setClearColor(vk::ClearColorValue clearColor);
+  void ensureGraphicsPipeline(MeshType type);
+  void renderMesh(vk::CommandBuffer commandBuffer, Mesh &mesh);
   void render(std::function<void(const vk::CommandBuffer &)> renderFunction);
+  VmaAllocator getAllocator() { return m_Allocator; };
+
   ~Renderer();
 
 private:
   uint32_t m_CurrentFrame = 0;
 
+  VmaAllocator m_Allocator;
   vk::ClearColorValue m_ClearColor;
   vkb::Instance m_InstanceContainer;
   vkb::Device m_DeviceContainer;
@@ -39,11 +46,15 @@ private:
   std::vector<vk::Fence> m_InFlightFences;
   std::vector<vk::Fence> m_ImageInFlight;
 
+  vk::PipelineLayout m_SimplePipelineLayout;
+  vk::Pipeline m_SimplePipeline;
+
   void createSwapchain(uint32_t width, uint32_t height);
   void createCommandPool();
   void createCommandBuffers();
   void createSyncObjects();
   void cleanupSwapchain();
+  vk::ShaderModule createShaderModule(const std::vector<char> &code);
   void transitionImageToPresent(vk::CommandBuffer commandBuffer,
                                 uint32_t imageIndex);
   void transitionImageToOptimal(vk::CommandBuffer commandBuffer,
@@ -52,6 +63,7 @@ private:
                                 uint32_t imageIndex);
   void endRecordCommandBuffer(vk::CommandBuffer commandBuffer,
                               uint32_t imageIndex);
+  void createSimplePipeline();
   void retrieveQueues();
 };
 

@@ -6,8 +6,11 @@ add_subdirectory(thirdparty/spdlog)
 set_target_properties(spdlog PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_subdirectory(thirdparty/vk-bootstrap)
 set_target_properties(vk-bootstrap PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(thirdparty/glfw)
 add_subdirectory(thirdparty/glm)
+add_subdirectory(thirdparty/entt)
+add_subdirectory(thirdparty/VulkanMemoryAllocator)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_SAMPLES "Build Artemis samples" ON)

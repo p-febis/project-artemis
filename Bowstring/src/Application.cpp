@@ -1,6 +1,6 @@
-#include "Bowstring/pch.hpp"
-#include "Bowstring/Logging.h"
 #include "Bowstring/Application.h"
+#include "Bowstring/Logging.h"
+#include "Bowstring/Mesh.h"
 
 bowstring::Application::Application(ApplicationConfig &config)
     : m_Config(config),
@@ -11,8 +11,22 @@ bowstring::Application::Application(ApplicationConfig &config)
 void bowstring::Application::run() {
   this->onInit();
   BS_LOG_DEBUG("Starting Application...");
-  this->m_Window.mainLoop(
-      [this] { this->m_Renderer.render([](vk::CommandBuffer) {}); });
+  this->m_Window.mainLoop([this] {
+    this->m_Renderer.render([this](vk::CommandBuffer commandBuffer) {
+      if (this->m_Mesh.has_value()) {
+        this->m_Mesh->bindBuffers(commandBuffer);
+        this->m_Mesh->render(commandBuffer);
+      }
+    });
+  });
+};
+
+bowstring::Mesh &
+bowstring::Application::createMesh(bowstring::MeshType type,
+                                   std::vector<Vertex> vertices) {
+  this->m_Renderer.ensureGraphicsPipeline(type);
+  this->m_Mesh.emplace(m_Renderer, std::move(vertices));
+  return *m_Mesh;
 };
 
 void bowstring::Application::setClearColor(glm::vec4 clearColor) {

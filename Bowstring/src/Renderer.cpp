@@ -4,12 +4,32 @@
 //   - https://vkguide.dev/
 //   - https://github.com/charles-lunarg/vk-bootstrap
 
-#include "Bowstring/pch.hpp"
 #include "Bowstring/Renderer.h"
 #include "Bowstring/Logging.h"
+#include "Bowstring/MeshType.h"
+#include "Bowstring/Vertex.h"
 #include "VkBootstrap.h"
 #include <cstdint>
+#include <fstream>
 #include <stdexcept>
+
+std::vector<char> readFile(const std::string &filename) {
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+  if (!file.is_open()) {
+    throw std::runtime_error("failed to open file!");
+  }
+
+  size_t file_size = (size_t)file.tellg();
+  std::vector<char> buffer(file_size);
+
+  file.seekg(0);
+  file.read(buffer.data(), static_cast<std::streamsize>(file_size));
+
+  file.close();
+
+  return buffer;
+}
 
 void bowstring::Renderer::initialize(bowstring::Window &window) {
   this->m_InstanceContainer = vkb::InstanceBuilder()
@@ -43,11 +63,160 @@ void bowstring::Renderer::initialize(bowstring::Window &window) {
                (void *)physicalDevice.physical_device);
   BS_LOG_DEBUG("Created Logical Device: {}", (void *)this->m_Device);
 
+  VmaVulkanFunctions vulkanFunctions = {};
+  vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+  vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+  VmaAllocatorCreateInfo allocatorCreateInfo = {};
+  allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+  allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+  allocatorCreateInfo.physicalDevice = physicalDevice;
+  allocatorCreateInfo.device = this->m_Device;
+  allocatorCreateInfo.instance = this->m_Instance;
+  allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+  vmaCreateAllocator(&allocatorCreateInfo, &this->m_Allocator);
+
   this->createSwapchain(window.getWidth(), window.getHeight());
   this->retrieveQueues();
   this->createCommandPool();
   this->createCommandBuffers();
   this->createSyncObjects();
+}
+
+vk::ShaderModule
+bowstring::Renderer::createShaderModule(const std::vector<char> &code) {
+  vk::ShaderModuleCreateInfo createInfo{};
+  createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
+  createInfo.codeSize = code.size();
+
+  vk::ShaderModule shaderModule;
+  this->m_Device.createShaderModule(&createInfo, nullptr, &shaderModule);
+
+  return shaderModule;
+}
+void bowstring::Renderer::createSimplePipeline() {
+  auto vertexShaderCode = readFile("../shaders/vert.spv");
+  auto fragmentShaderCode = readFile("../shaders/frag.spv");
+
+  vk::ShaderModule vertexShaderModule =
+      this->createShaderModule(vertexShaderCode);
+  vk::ShaderModule fragmentShaderModule =
+      this->createShaderModule(fragmentShaderCode);
+
+  vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{};
+  vertexStageCreateInfo.stage = vk::ShaderStageFlagBits::eVertex;
+  vertexStageCreateInfo.module = vertexShaderModule;
+  vertexStageCreateInfo.pName = "main";
+
+  vk::PipelineShaderStageCreateInfo fragmentStageCreateInfo{};
+  fragmentStageCreateInfo.stage = vk::ShaderStageFlagBits::eFragment;
+  fragmentStageCreateInfo.module = fragmentShaderModule;
+  fragmentStageCreateInfo.pName = "main";
+
+  std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStageCreateInfos = {
+      vertexStageCreateInfo, fragmentStageCreateInfo};
+
+  auto bindingDescription = Vertex::getBindingDescription();
+  auto attributeDescription = Vertex::getAttributeDescriptions();
+
+  vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo{};
+  vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+  vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+
+  vertexInputCreateInfo.vertexAttributeDescriptionCount =
+      attributeDescription.size();
+  vertexInputCreateInfo.pVertexAttributeDescriptions =
+      attributeDescription.data();
+
+  vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{};
+  inputAssemblyCreateInfo.topology = vk::PrimitiveTopology::eTriangleList;
+
+  vk::PipelineViewportStateCreateInfo viewportStateCreateInfo{};
+  viewportStateCreateInfo.viewportCount = 1;
+  viewportStateCreateInfo.scissorCount = 1;
+
+  vk::PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{};
+  rasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
+  rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+  rasterizationStateCreateInfo.polygonMode = vk::PolygonMode::eFill;
+  rasterizationStateCreateInfo.lineWidth = 1.0f;
+  rasterizationStateCreateInfo.cullMode = vk::CullModeFlagBits::eBack;
+  rasterizationStateCreateInfo.frontFace = vk::FrontFace::eClockwise;
+  rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+
+  vk::PipelineMultisampleStateCreateInfo multiSampingStateCreateInfo{};
+  multiSampingStateCreateInfo.sampleShadingEnable = VK_FALSE;
+  multiSampingStateCreateInfo.rasterizationSamples =
+      vk::SampleCountFlagBits::e1;
+
+  vk::PipelineColorBlendAttachmentState colorBlendAttachmentState;
+  colorBlendAttachmentState.colorWriteMask =
+      vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachmentState.blendEnable = VK_FALSE;
+
+  vk::PipelineColorBlendStateCreateInfo colorBlendingStateCreateInfo;
+  colorBlendingStateCreateInfo.logicOpEnable = VK_FALSE;
+  colorBlendingStateCreateInfo.attachmentCount = 1;
+  colorBlendingStateCreateInfo.pAttachments = &colorBlendAttachmentState;
+
+  vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
+  pipelineLayoutCreateInfo.setLayoutCount = 0;
+
+  vk::Result result = this->m_Device.createPipelineLayout(
+      &pipelineLayoutCreateInfo, nullptr, &this->m_SimplePipelineLayout);
+
+  assert(result == vk::Result::eSuccess);
+
+  std::array<vk::DynamicState, 2> dynamicStates = {vk::DynamicState::eViewport,
+                                                   vk::DynamicState::eScissor};
+
+  vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+  dynamicStateCreateInfo.dynamicStateCount =
+      static_cast<uint32_t>(dynamicStates.size());
+  dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+
+  vk::PipelineRenderingCreateInfo piplineRenderingCreateInfo{};
+  piplineRenderingCreateInfo.colorAttachmentCount = 1;
+  auto attachmentFormat = vk::Format(this->m_SwapchainContainer.image_format);
+  piplineRenderingCreateInfo.pColorAttachmentFormats = &attachmentFormat;
+
+  vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
+  pipelineCreateInfo.pNext = &piplineRenderingCreateInfo;
+  pipelineCreateInfo.stageCount = 2;
+  pipelineCreateInfo.pStages = shaderStageCreateInfos.data();
+  pipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
+  pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
+  pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
+  pipelineCreateInfo.pRasterizationState = &rasterizationStateCreateInfo;
+  pipelineCreateInfo.pMultisampleState = &multiSampingStateCreateInfo;
+  pipelineCreateInfo.pColorBlendState = &colorBlendingStateCreateInfo;
+  pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+  pipelineCreateInfo.layout = this->m_SimplePipelineLayout;
+  pipelineCreateInfo.subpass = 0;
+
+  auto resultValue = this->m_Device.createGraphicsPipeline(
+      VK_NULL_HANDLE, pipelineCreateInfo, nullptr);
+
+  assert(resultValue.result == vk::Result::eSuccess);
+  this->m_SimplePipeline = resultValue.value;
+
+  this->m_Device.destroyShaderModule(fragmentShaderModule);
+  this->m_Device.destroyShaderModule(vertexShaderModule);
+}
+
+void bowstring::Renderer::ensureGraphicsPipeline(bowstring::MeshType type) {
+  switch (type) {
+  case bowstring::MeshType::eBasic:
+    if (this->m_SimplePipeline == VK_NULL_HANDLE) {
+      this->createSimplePipeline();
+    }
+    return;
+  default:
+    BS_LOG_ERROR("This renderer type is currently not supported");
+    break;
+  }
 }
 
 void bowstring::Renderer::createSyncObjects() {
@@ -235,6 +404,25 @@ void bowstring::Renderer::beginRecordCommandBuffer(
   renderingInfo.pColorAttachments = &colorAttachmentInfo;
 
   commandBuffer.beginRendering(renderingInfo);
+
+  if (this->m_SimplePipeline != VK_NULL_HANDLE) {
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                               this->m_SimplePipeline);
+  }
+
+  vk::Viewport viewport{};
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = (float)this->m_SwapchainContainer.extent.width;
+  viewport.height = (float)this->m_SwapchainContainer.extent.height;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  commandBuffer.setViewport(0, 1, &viewport);
+
+  vk::Rect2D scissor{};
+  scissor.offset = vk::Offset2D{0, 0};
+  scissor.extent = this->m_SwapchainContainer.extent;
+  commandBuffer.setScissor(0, 1, &scissor);
 };
 
 void bowstring::Renderer::endRecordCommandBuffer(
@@ -261,8 +449,9 @@ void bowstring::Renderer::render(
       &imageIndex);
 
   if (nextImageResult == vk::Result::eErrorOutOfDateKHR) {
+    BS_LOG_DEBUG("Recreate the SwapChain");
     // TODO: Recreate Swapchain
-    // return;
+    return;
   }
 
   if (nextImageResult != vk::Result::eSuccess &&
@@ -328,7 +517,9 @@ void bowstring::Renderer::render(
   presentInfo.pImageIndices = &imageIndex;
 
   auto presentResult = this->m_PresentQueue.presentKHR(&presentInfo);
-  if (presentResult != vk::Result::eSuccess) {
+  if (presentResult != vk::Result::eSuccess &&
+      presentResult != vk::Result::eSuboptimalKHR) {
+    BS_LOG_ERROR("{}", (int)presentResult);
     throw std::runtime_error("Failed to submit to presentQueue");
   }
 
@@ -337,6 +528,11 @@ void bowstring::Renderer::render(
 };
 
 bowstring::Renderer::~Renderer() {
+
+  if (this->m_SimplePipeline != VK_NULL_HANDLE) {
+    this->m_Device.destroyPipeline(this->m_SimplePipeline);
+    this->m_Device.destroyPipelineLayout(this->m_SimplePipelineLayout);
+  }
 
   for (uint32_t i = 0; i < this->m_SwapchainContainer.image_count; i++) {
     this->m_Device.destroySemaphore(this->m_RenderFinishedSemaphores[i]);
@@ -348,6 +544,8 @@ bowstring::Renderer::~Renderer() {
 
   this->m_Device.destroyCommandPool(this->m_CommandPool);
   this->cleanupSwapchain();
+  vmaDestroyAllocator(this->m_Allocator);
+
   vkb::destroy_device(this->m_DeviceContainer);
   this->m_Instance.destroySurfaceKHR(this->m_Surface);
   vkb::destroy_instance(this->m_InstanceContainer);
