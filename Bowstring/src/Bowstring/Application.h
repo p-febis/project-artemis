@@ -5,7 +5,7 @@
 #include "Renderer.h"
 #include "Window.h"
 #include <cstdint>
-#include <optional>
+#include <entt/entt.hpp>
 
 namespace bowstring {
 struct ApplicationConfig {
@@ -16,17 +16,15 @@ struct ApplicationConfig {
 
 class Application {
 private:
-
   ApplicationConfig m_Config;
   Window m_Window;
   Renderer m_Renderer;
-  std::optional<bowstring::Mesh> m_Mesh{};
+  entt::registry m_Registry;
 
 public:
   Application(ApplicationConfig &config);
   void setClearColor(glm::vec4 clearColor);
-  bowstring::Mesh &createMesh(bowstring::MeshType type,
-                              std::vector<Vertex> vertices);
+  void createMesh(bowstring::MeshType type, std::vector<Vertex> vertices);
   void run();
 
   virtual void onInit();

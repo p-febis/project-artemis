@@ -1,6 +1,6 @@
-#include "Bowstring/pch.hpp"
 #include "Bowstring/Window.h"
 #include "Bowstring/Logging.h"
+#include "Bowstring/pch.hpp"
 #include <stdexcept>
 
 bowstring::Window::Window(uint32_t width, uint32_t height, const char *title)

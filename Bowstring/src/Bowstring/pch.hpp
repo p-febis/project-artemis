@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <array>
-#include <cassert>
 
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>

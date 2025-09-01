@@ -61,7 +61,7 @@ add_bowstring_module(
   src/Bowstring/Application.h
   src/Application.cpp
 )
-target_link_libraries(Bowstring_Application PUBLIC Bowstring_Renderer glm)
+target_link_libraries(Bowstring_Application PUBLIC Bowstring_Renderer glm EnTT)
 
 add_bowstring_module(
   Mesh

@@ -91,7 +91,12 @@ bowstring::Renderer::createShaderModule(const std::vector<char> &code) {
   createInfo.codeSize = code.size();
 
   vk::ShaderModule shaderModule;
-  this->m_Device.createShaderModule(&createInfo, nullptr, &shaderModule);
+  auto result =
+      this->m_Device.createShaderModule(&createInfo, nullptr, &shaderModule);
+
+  if (result != vk::Result::eSuccess) {
+    throw new std::runtime_error("Failed to create shader module");
+  }
 
   return shaderModule;
 }
@@ -167,7 +172,10 @@ void bowstring::Renderer::createSimplePipeline() {
   vk::Result result = this->m_Device.createPipelineLayout(
       &pipelineLayoutCreateInfo, nullptr, &this->m_SimplePipelineLayout);
 
-  assert(result == vk::Result::eSuccess);
+  if (result != vk::Result::eSuccess) {
+    BS_LOG_ERROR("Failed to create pipeline layout");
+    throw std::runtime_error("Failed to create pipeline layout");
+  }
 
   std::array<vk::DynamicState, 2> dynamicStates = {vk::DynamicState::eViewport,
                                                    vk::DynamicState::eScissor};
@@ -199,7 +207,11 @@ void bowstring::Renderer::createSimplePipeline() {
   auto resultValue = this->m_Device.createGraphicsPipeline(
       VK_NULL_HANDLE, pipelineCreateInfo, nullptr);
 
-  assert(resultValue.result == vk::Result::eSuccess);
+  if (resultValue.result != vk::Result::eSuccess) {
+    BS_LOG_ERROR("Failed to create pipeline");
+    throw std::runtime_error("Failed to create pipeline");
+  }
+
   this->m_SimplePipeline = resultValue.value;
 
   this->m_Device.destroyShaderModule(fragmentShaderModule);

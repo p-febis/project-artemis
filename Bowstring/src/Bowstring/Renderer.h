@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Bowstring/VMA.h"
 #include "Bowstring/MeshType.h"
+#include "Bowstring/VMA.h"
 #include "Bowstring/Window.h"
 #include <VkBootstrap.h>
 #include <functional>

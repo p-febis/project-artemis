@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Bowstring/pch.hpp"
 #include <cstdint>
 #include <functional>
 #include <vulkan/vulkan.hpp>
-#include "Bowstring/pch.hpp"
 
 namespace bowstring {
 class Window {
