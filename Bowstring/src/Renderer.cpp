@@ -7,11 +7,13 @@
 #include "Bowstring/Renderer.h"
 #include "Bowstring/Logging.h"
 #include "Bowstring/MeshType.h"
+#include "Bowstring/PipelineBuilder.h"
 #include "Bowstring/Vertex.h"
 #include "VkBootstrap.h"
 #include <cstdint>
 #include <fstream>
 #include <stdexcept>
+#include <vulkan/vulkan_enums.hpp>
 
 std::vector<char> readFile(const std::string &filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -101,6 +103,7 @@ bowstring::Renderer::createShaderModule(const std::vector<char> &code) {
   return shaderModule;
 }
 void bowstring::Renderer::createSimplePipeline() {
+  auto pipelineBuilder = PipelineBuilder();
   auto vertexShaderCode = readFile("../shaders/vert.spv");
   auto fragmentShaderCode = readFile("../shaders/frag.spv");
 
@@ -109,110 +112,26 @@ void bowstring::Renderer::createSimplePipeline() {
   vk::ShaderModule fragmentShaderModule =
       this->createShaderModule(fragmentShaderCode);
 
-  vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{};
-  vertexStageCreateInfo.stage = vk::ShaderStageFlagBits::eVertex;
-  vertexStageCreateInfo.module = vertexShaderModule;
-  vertexStageCreateInfo.pName = "main";
-
-  vk::PipelineShaderStageCreateInfo fragmentStageCreateInfo{};
-  fragmentStageCreateInfo.stage = vk::ShaderStageFlagBits::eFragment;
-  fragmentStageCreateInfo.module = fragmentShaderModule;
-  fragmentStageCreateInfo.pName = "main";
-
-  std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStageCreateInfos = {
-      vertexStageCreateInfo, fragmentStageCreateInfo};
-
-  auto bindingDescription = Vertex::getBindingDescription();
-  auto attributeDescription = Vertex::getAttributeDescriptions();
-
-  vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo{};
-  vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
-  vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
-
-  vertexInputCreateInfo.vertexAttributeDescriptionCount =
-      attributeDescription.size();
-  vertexInputCreateInfo.pVertexAttributeDescriptions =
-      attributeDescription.data();
-
-  vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{};
-  inputAssemblyCreateInfo.topology = vk::PrimitiveTopology::eTriangleList;
-
-  vk::PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-  viewportStateCreateInfo.viewportCount = 1;
-  viewportStateCreateInfo.scissorCount = 1;
-
-  vk::PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{};
-  rasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
-  rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
-  rasterizationStateCreateInfo.polygonMode = vk::PolygonMode::eFill;
-  rasterizationStateCreateInfo.lineWidth = 1.0f;
-  rasterizationStateCreateInfo.cullMode = vk::CullModeFlagBits::eBack;
-  rasterizationStateCreateInfo.frontFace = vk::FrontFace::eClockwise;
-  rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
-
-  vk::PipelineMultisampleStateCreateInfo multiSampingStateCreateInfo{};
-  multiSampingStateCreateInfo.sampleShadingEnable = VK_FALSE;
-  multiSampingStateCreateInfo.rasterizationSamples =
-      vk::SampleCountFlagBits::e1;
-
-  vk::PipelineColorBlendAttachmentState colorBlendAttachmentState;
-  colorBlendAttachmentState.colorWriteMask =
-      vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachmentState.blendEnable = VK_FALSE;
-
-  vk::PipelineColorBlendStateCreateInfo colorBlendingStateCreateInfo;
-  colorBlendingStateCreateInfo.logicOpEnable = VK_FALSE;
-  colorBlendingStateCreateInfo.attachmentCount = 1;
-  colorBlendingStateCreateInfo.pAttachments = &colorBlendAttachmentState;
-
-  vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
-  pipelineLayoutCreateInfo.setLayoutCount = 0;
-
-  vk::Result result = this->m_Device.createPipelineLayout(
-      &pipelineLayoutCreateInfo, nullptr, &this->m_SimplePipelineLayout);
-
-  if (result != vk::Result::eSuccess) {
-    BS_LOG_ERROR("Failed to create pipeline layout");
-    throw std::runtime_error("Failed to create pipeline layout");
-  }
-
   std::array<vk::DynamicState, 2> dynamicStates = {vk::DynamicState::eViewport,
                                                    vk::DynamicState::eScissor};
-
-  vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
-  dynamicStateCreateInfo.dynamicStateCount =
-      static_cast<uint32_t>(dynamicStates.size());
-  dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
-
-  vk::PipelineRenderingCreateInfo piplineRenderingCreateInfo{};
-  piplineRenderingCreateInfo.colorAttachmentCount = 1;
+  auto bindingDescription = Vertex::getBindingDescription();
+  auto attributeDescription = Vertex::getAttributeDescriptions();
   auto attachmentFormat = vk::Format(this->m_SwapchainContainer.image_format);
-  piplineRenderingCreateInfo.pColorAttachmentFormats = &attachmentFormat;
 
-  vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
-  pipelineCreateInfo.pNext = &piplineRenderingCreateInfo;
-  pipelineCreateInfo.stageCount = 2;
-  pipelineCreateInfo.pStages = shaderStageCreateInfos.data();
-  pipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
-  pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
-  pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-  pipelineCreateInfo.pRasterizationState = &rasterizationStateCreateInfo;
-  pipelineCreateInfo.pMultisampleState = &multiSampingStateCreateInfo;
-  pipelineCreateInfo.pColorBlendState = &colorBlendingStateCreateInfo;
-  pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-  pipelineCreateInfo.layout = this->m_SimplePipelineLayout;
-  pipelineCreateInfo.subpass = 0;
+  auto result =
+      pipelineBuilder
+          .setShader(vk::ShaderStageFlagBits::eVertex, vertexShaderModule)
+          .setShader(vk::ShaderStageFlagBits::eFragment, fragmentShaderModule)
+          .setTopology(vk::PrimitiveTopology::eTriangleList)
+          .setDynamicStates(dynamicStates.data(), dynamicStates.size())
+          .setBindingDescriptions(&bindingDescription, 1)
+          .setVertexAttributeDescriptions(attributeDescription.data(),
+                                          attributeDescription.size())
+          .setColorAttachments(&attachmentFormat, 1)
+          .build(this->m_Device);
 
-  auto resultValue = this->m_Device.createGraphicsPipeline(
-      VK_NULL_HANDLE, pipelineCreateInfo, nullptr);
-
-  if (resultValue.result != vk::Result::eSuccess) {
-    BS_LOG_ERROR("Failed to create pipeline");
-    throw std::runtime_error("Failed to create pipeline");
-  }
-
-  this->m_SimplePipeline = resultValue.value;
+  this->m_SimplePipelineLayout = result.layout;
+  this->m_SimplePipeline = result.pipeline;
 
   this->m_Device.destroyShaderModule(fragmentShaderModule);
   this->m_Device.destroyShaderModule(vertexShaderModule);
@@ -346,48 +265,46 @@ void bowstring::Renderer::setClearColor(vk::ClearColorValue color) {
   this->m_ClearColor = color;
 };
 
-void bowstring::Renderer::transitionImageToPresent(
-    vk::CommandBuffer commandBuffer, uint32_t imageIndex) {
+void bowstring::Renderer::transitionImageLayout(vk::CommandBuffer commandBuffer,
+                                                vk::Image image,
+                                                vk::ImageLayout oldLayout,
+                                                vk::ImageLayout newLayout) {
 
-  vk::ImageMemoryBarrier imageMemoryBarrier{};
-  imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-  imageMemoryBarrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
-  imageMemoryBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
-  imageMemoryBarrier.image = this->m_SwapchainImages[imageIndex];
+  vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = oldLayout;
+  barrier.newLayout = newLayout;
+  barrier.image = image;
+  barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = 1;
 
-  vk::ImageSubresourceRange subresourceRange = {};
-  subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  subresourceRange.levelCount = 1;
-  subresourceRange.layerCount = 1;
-  imageMemoryBarrier.subresourceRange = subresourceRange;
+  vk::PipelineStageFlags srcStage;
+  vk::PipelineStageFlags dstStage;
 
-  commandBuffer.pipelineBarrier(
-      vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      vk::PipelineStageFlagBits::eBottomOfPipe,
-      vk::DependencyFlagBits::eByRegion, 0, nullptr, 0, nullptr, 1,
-      &imageMemoryBarrier);
-}
+  if (oldLayout == vk::ImageLayout::eUndefined &&
+      newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
+    barrier.srcAccessMask = {};
+    barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
 
-void bowstring::Renderer::transitionImageToOptimal(
-    vk::CommandBuffer commandBuffer, uint32_t imageIndex) {
+    srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+    dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-  vk::ImageMemoryBarrier imageMemoryBarrier{};
-  imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-  imageMemoryBarrier.oldLayout = vk::ImageLayout::eUndefined;
-  imageMemoryBarrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-  imageMemoryBarrier.image = this->m_SwapchainImages[imageIndex];
+  } else if (oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
+             newLayout == vk::ImageLayout::ePresentSrcKHR) {
+    barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+    barrier.dstAccessMask = {};
 
-  vk::ImageSubresourceRange subresourceRange = {};
-  subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  subresourceRange.levelCount = 1;
-  subresourceRange.layerCount = 1;
-  imageMemoryBarrier.subresourceRange = subresourceRange;
+    srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dstStage = vk::PipelineStageFlagBits::eBottomOfPipe;
 
-  commandBuffer.pipelineBarrier(
-      vk::PipelineStageFlagBits::eTopOfPipe,
-      vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      vk::DependencyFlagBits::eByRegion, 0, nullptr, 0, nullptr, 1,
-      &imageMemoryBarrier);
+  } else {
+    throw std::invalid_argument("Unsupported layout transition!");
+  }
+
+  commandBuffer.pipelineBarrier(srcStage, dstStage, {}, 0, nullptr, 0, nullptr,
+                                1, &barrier);
 }
 
 void bowstring::Renderer::beginRecordCommandBuffer(
@@ -399,7 +316,9 @@ void bowstring::Renderer::beginRecordCommandBuffer(
     throw std::runtime_error("Failed to begin commandBuffer recording");
   };
 
-  this->transitionImageToOptimal(commandBuffer, imageIndex);
+  transitionImageLayout(commandBuffer, this->m_SwapchainImages[imageIndex],
+                        vk::ImageLayout::eUndefined,
+                        vk::ImageLayout::eColorAttachmentOptimal);
 
   vk::RenderingAttachmentInfo colorAttachmentInfo{};
   colorAttachmentInfo.imageView = this->m_SwapchainImageViews[imageIndex];
@@ -440,7 +359,9 @@ void bowstring::Renderer::beginRecordCommandBuffer(
 void bowstring::Renderer::endRecordCommandBuffer(
     vk::CommandBuffer commandBuffer, uint32_t imageIndex) {
   commandBuffer.endRendering();
-  this->transitionImageToPresent(commandBuffer, imageIndex);
+  transitionImageLayout(commandBuffer, this->m_SwapchainImages[imageIndex],
+                        vk::ImageLayout::eColorAttachmentOptimal,
+                        vk::ImageLayout::ePresentSrcKHR);
   commandBuffer.end();
 }
 

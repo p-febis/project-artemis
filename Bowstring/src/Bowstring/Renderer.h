@@ -55,10 +55,9 @@ private:
   void createSyncObjects();
   void cleanupSwapchain();
   vk::ShaderModule createShaderModule(const std::vector<char> &code);
-  void transitionImageToPresent(vk::CommandBuffer commandBuffer,
-                                uint32_t imageIndex);
-  void transitionImageToOptimal(vk::CommandBuffer commandBuffer,
-                                uint32_t imageIndex);
+  void transitionImageLayout(vk::CommandBuffer commandBuffer, vk::Image image,
+                             vk::ImageLayout oldLayout,
+                             vk::ImageLayout newLayout);
   void beginRecordCommandBuffer(vk::CommandBuffer commandBuffer,
                                 uint32_t imageIndex);
   void endRecordCommandBuffer(vk::CommandBuffer commandBuffer,

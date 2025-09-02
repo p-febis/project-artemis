@@ -4,27 +4,34 @@ find_package(Vulkan REQUIRED)
 
 add_library(Bowstring_PCH INTERFACE)
 target_sources(Bowstring_PCH INTERFACE src/Bowstring/pch.hpp)
-target_include_directories(Bowstring_PCH INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(
+    Bowstring_PCH
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 function(add_bowstring_module name)
-  add_library(Bowstring_${name} SHARED ${ARGN})
+    add_library(Bowstring_${name} SHARED ${ARGN})
 
-  target_include_directories(Bowstring_${name}
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    $<INSTALL_INTERFACE:include>
-  )
+    target_include_directories(
+        Bowstring_${name}
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<INSTALL_INTERFACE:include>
+    )
 
-  target_compile_features(Bowstring_${name} PUBLIC cxx_std_17)
+    target_compile_features(Bowstring_${name} PUBLIC cxx_std_17)
 
-  if(MSVC)
-    target_compile_options(Bowstring_${name} PRIVATE /W4 /permissive-)
-  else()
-    target_compile_options(Bowstring_${name} PRIVATE -Wall -Wextra -Wpedantic)
-  endif()
+    if(MSVC)
+        target_compile_options(Bowstring_${name} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(
+            Bowstring_${name}
+            PRIVATE -Wall -Wextra -Wpedantic
+        )
+    endif()
 
-  target_link_libraries(Bowstring INTERFACE Bowstring_${name} Bowstring_PCH)
+    target_link_libraries(Bowstring INTERFACE Bowstring_${name} Bowstring_PCH)
 endfunction()
-
 
 add_bowstring_module(
   Logging
@@ -32,7 +39,6 @@ add_bowstring_module(
   src/Logging.cpp
 )
 target_link_libraries(Bowstring_Logging PUBLIC spdlog)
-
 
 add_bowstring_module(
   Window
@@ -50,11 +56,27 @@ add_bowstring_module(
 target_link_libraries(Bowstring_VMA PUBLIC VulkanMemoryAllocator)
 
 add_bowstring_module(
+  PipelineBuilder
+  src/Bowstring/PipelineBuilder.h
+  src/PipelineBuilder.cpp
+)
+target_link_libraries(Bowstring_PipelineBuilder PUBLIC glm glfw Vulkan::Vulkan)
+
+add_bowstring_module(
   Renderer
   src/Bowstring/Renderer.h
   src/Renderer.cpp
 )
-target_link_libraries(Bowstring_Renderer PUBLIC Bowstring_Window vk-bootstrap::vk-bootstrap Vulkan::Vulkan VulkanMemoryAllocator Bowstring_VMA)
+target_link_libraries(
+    Bowstring_Renderer
+    PUBLIC
+        Bowstring_Window
+        Bowstring_PipelineBuilder
+        vk-bootstrap::vk-bootstrap
+        Vulkan::Vulkan
+        VulkanMemoryAllocator
+        Bowstring_VMA
+)
 
 add_bowstring_module(
   Application
@@ -69,5 +91,7 @@ add_bowstring_module(
   src/Mesh.cpp
 )
 
-target_link_libraries(Bowstring_Mesh PUBLIC Bowstring_Renderer glm VulkanMemoryAllocator)
-
+target_link_libraries(
+    Bowstring_Mesh
+    PUBLIC Bowstring_Renderer glm VulkanMemoryAllocator
+)
