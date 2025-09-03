@@ -1,4 +1,5 @@
 #include "Bowstring/Mesh.h"
+#include "Bowstring/AllocatedData.h"
 #include "Bowstring/Logging.h"
 #include "Bowstring/Renderer.h"
 
@@ -25,106 +26,88 @@ bowstring::Mesh::Mesh(Renderer &renderer, const std::vector<Vertex> &vertices,
   this->createIndexBuffer();
 }
 
+void bowstring::Mesh::copyBuffer(vk::Buffer sourceBuffer,
+                                 vk::Buffer destinationBuffer,
+                                 vk::DeviceSize size) {
+  vk::CommandBuffer commandBuffer = this->m_Renderer.startOneTimeSubmit();
+
+  vk::BufferCopy copyRegion{};
+  copyRegion.size = size;
+
+  commandBuffer.copyBuffer(sourceBuffer, destinationBuffer, 1, &copyRegion);
+
+  this->m_Renderer.endOneTimeSubmit(commandBuffer);
+}
+bowstring::AllocatedBuffer
+bowstring::Mesh::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
+                              VmaAllocationCreateFlags allocationFlags) {
+
+  bowstring::AllocatedBuffer createdBuffer;
+  vk::BufferCreateInfo bufferCreateInfo{};
+  bufferCreateInfo.size = size;
+  bufferCreateInfo.usage = usage;
+
+  VmaAllocationCreateInfo allocationCreateInfo = {};
+  allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+  allocationCreateInfo.flags = allocationFlags;
+
+  vmaCreateBuffer(this->m_Renderer.getAllocator(),
+                  reinterpret_cast<VkBufferCreateInfo *>(&bufferCreateInfo),
+                  &allocationCreateInfo,
+                  reinterpret_cast<VkBuffer *>(&createdBuffer.buffer),
+                  &createdBuffer.allocation, &createdBuffer.info);
+
+  return createdBuffer;
+};
+
 void bowstring::Mesh::createVertexBuffer() {
-  VmaAllocator allocator = this->m_Renderer.getAllocator();
+  auto allocator = this->m_Renderer.getAllocator();
+  vk::DeviceSize bufferSize(sizeof(this->m_Vertices[0]) *
+                            this->m_Vertices.size());
 
-  vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = sizeof(this->m_Vertices[0]) * this->m_Vertices.size();
-  bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
-  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+  auto stagingBuffer = this->createBuffer(
+      bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+          VMA_ALLOCATION_CREATE_MAPPED_BIT);
 
-  VmaAllocationCreateInfo vmaAllocationInfo{};
-  vmaAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
-  vmaAllocationInfo.flags =
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  vmaCopyMemoryToAllocation(allocator, this->m_Vertices.data(),
+                            stagingBuffer.allocation, 0, bufferSize);
+  this->m_VertexBuffer =
+      this->createBuffer(bufferSize,
+                         vk::BufferUsageFlagBits::eTransferDst |
+                             vk::BufferUsageFlagBits::eVertexBuffer,
+                         VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT);
 
-  BS_LOG_DEBUG(
-      "[Mesh::createVertexBuffer] size={} usage=VertexBuffer host-write",
-      (uint64_t)bufferInfo.size);
+  this->copyBuffer(stagingBuffer.buffer, this->m_VertexBuffer.buffer,
+                   bufferSize);
 
-  VkResult result = vmaCreateBuffer(
-      allocator, reinterpret_cast<const VkBufferCreateInfo *>(&bufferInfo),
-      &vmaAllocationInfo,
-      reinterpret_cast<VkBuffer *>(&this->m_VertexBuffer.buffer),
-      &this->m_VertexBuffer.allocation, &this->m_VertexBuffer.info);
-
-  if (result != VK_SUCCESS) {
-    BS_LOG_ERROR("[Mesh::createVertexBuffer] vmaCreateBuffer failed: {}",
-                 (int)result);
-    throw std::runtime_error("vmaCreateBuffer (vertex) failed");
-  }
-
-  BS_LOG_DEBUG(
-      "[Mesh::createVertexBuffer] buffer={} alloc={} memoryType={} size={}",
-      (void *)static_cast<VkBuffer>(this->m_VertexBuffer.buffer),
-      (void *)this->m_VertexBuffer.allocation,
-      this->m_VertexBuffer.info.memoryType,
-      (uint64_t)this->m_VertexBuffer.info.size);
-
-  result = vmaCopyMemoryToAllocation(allocator, this->m_Vertices.data(),
-                                     this->m_VertexBuffer.allocation, 0,
-                                     bufferInfo.size);
-
-  if (result != VK_SUCCESS) {
-    BS_LOG_ERROR(
-        "[Mesh::createVertexBuffer] vmaCopyMemoryToAllocation failed: {}",
-        (int)result);
-    throw std::runtime_error("vmaCopyMemoryToAllocation (vertex) failed");
-  }
-
-  BS_LOG_DEBUG("[Mesh::createVertexBuffer] uploaded {} vertices ({} bytes)",
-               m_Vertices.size(), (uint64_t)bufferInfo.size);
+  vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
 }
 
 void bowstring::Mesh::createIndexBuffer() {
   VmaAllocator allocator = this->m_Renderer.getAllocator();
 
-  vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = sizeof(this->m_Indices[0]) * this->m_Indices.size();
-  bufferInfo.usage = vk::BufferUsageFlagBits::eIndexBuffer;
-  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+  vk::DeviceSize bufferSize(sizeof(this->m_Indices[0]) *
+                            this->m_Indices.size());
 
-  VmaAllocationCreateInfo vmaAllocationInfo{};
-  vmaAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
-  vmaAllocationInfo.flags =
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  auto stagingBuffer = this->createBuffer(
+      bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+          VMA_ALLOCATION_CREATE_MAPPED_BIT);
 
-  BS_LOG_DEBUG(
-      "[Mesh::createIndexBuffer] count={} size={} usage=IndexBuffer host-write",
-      m_Indices.size(), (uint64_t)bufferInfo.size);
+  vmaCopyMemoryToAllocation(allocator, this->m_Indices.data(),
+                            stagingBuffer.allocation, 0, bufferSize);
 
-  VkResult result = vmaCreateBuffer(
-      allocator, reinterpret_cast<const VkBufferCreateInfo *>(&bufferInfo),
-      &vmaAllocationInfo,
-      reinterpret_cast<VkBuffer *>(&this->m_IndexBuffer.buffer),
-      &this->m_IndexBuffer.allocation, &this->m_IndexBuffer.info);
+  this->m_IndexBuffer =
+      this->createBuffer(bufferSize,
+                         vk::BufferUsageFlagBits::eTransferDst |
+                             vk::BufferUsageFlagBits::eIndexBuffer,
+                         VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT);
 
-  if (result != VK_SUCCESS) {
-    BS_LOG_ERROR("[Mesh::createIndexBuffer] vmaCreateBuffer failed: {}",
-                 (int)result);
-    throw std::runtime_error("vmaCreateBuffer (index) failed");
-  }
+  this->copyBuffer(stagingBuffer.buffer, this->m_IndexBuffer.buffer,
+                   bufferSize);
 
-  BS_LOG_DEBUG(
-      "[Mesh::createIndexBuffer] buffer={} alloc={} memoryType={} size={}",
-      (void *)static_cast<VkBuffer>(this->m_IndexBuffer.buffer),
-      (void *)this->m_IndexBuffer.allocation,
-      this->m_IndexBuffer.info.memoryType,
-      (uint64_t)this->m_IndexBuffer.info.size);
-
-  result = vmaCopyMemoryToAllocation(allocator, this->m_Indices.data(),
-                                     this->m_IndexBuffer.allocation, 0,
-                                     bufferInfo.size);
-
-  if (result != VK_SUCCESS) {
-    BS_LOG_ERROR(
-        "[Mesh::createIndexBuffer] vmaCopyMemoryToAllocation failed: {}",
-        (int)result);
-    throw std::runtime_error("vmaCopyMemoryToAllocation (index) failed");
-  }
-
-  BS_LOG_DEBUG("[Mesh::createIndexBuffer] uploaded {} indices ({} bytes)",
-               m_Indices.size(), (uint64_t)bufferInfo.size);
+  vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
 }
 
 void bowstring::Mesh::bindBuffers(vk::CommandBuffer commandBuffer) {

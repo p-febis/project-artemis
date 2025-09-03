@@ -208,6 +208,45 @@ void bowstring::Renderer::createCommandBuffers() {
   BS_LOG_DEBUG("Created Command Buffers[{}]", this->m_CommandBuffers.size());
 }
 
+vk::CommandBuffer bowstring::Renderer::startOneTimeSubmit() {
+  vk::CommandBufferAllocateInfo allocationInfo{};
+  allocationInfo.level = vk::CommandBufferLevel::ePrimary;
+  allocationInfo.commandPool = this->m_CommandPool;
+  allocationInfo.commandBufferCount = 1;
+
+  vk::CommandBuffer commandBuffer;
+
+  auto result =
+      this->m_Device.allocateCommandBuffers(&allocationInfo, &commandBuffer);
+
+  if (result != vk::Result::eSuccess) {
+    throw new std::runtime_error("Failed to start one time submit");
+  }
+
+  vk::CommandBufferBeginInfo beginInfo{};
+  beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+  commandBuffer.begin(beginInfo);
+
+  return commandBuffer;
+};
+
+void bowstring::Renderer::endOneTimeSubmit(vk::CommandBuffer commandBuffer) {
+  commandBuffer.end();
+
+  vk::SubmitInfo submitInfo{};
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+
+  auto result = this->m_GraphicsQueue.submit(1, &submitInfo, VK_NULL_HANDLE);
+  if (result != vk::Result::eSuccess) {
+    throw new std::runtime_error("Failed to end one time submit");
+  }
+
+  this->m_GraphicsQueue.waitIdle();
+  this->m_Device.freeCommandBuffers(this->m_CommandPool, 1, &commandBuffer);
+};
+
 void bowstring::Renderer::createSwapchain(uint32_t width, uint32_t height) {
   vkb::SwapchainBuilder swapchainBuilder(this->m_DeviceContainer);
 

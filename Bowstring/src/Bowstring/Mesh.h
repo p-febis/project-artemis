@@ -16,6 +16,12 @@ private:
   AllocatedBuffer m_VertexBuffer;
   AllocatedBuffer m_IndexBuffer;
 
+  bowstring::AllocatedBuffer
+  createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
+               VmaAllocationCreateFlags allocationFlags);
+
+  void copyBuffer(vk::Buffer sourceBuffer, vk::Buffer destinationBuffer,
+                  vk::DeviceSize size);
   void createVertexBuffer();
   void createIndexBuffer();
 
@@ -27,7 +33,7 @@ public:
 
   Mesh(Renderer &renderer, const std::vector<Vertex> &vertices);
   Mesh(Renderer &renderer, const std::vector<Vertex> &vertices,
-       const std::vector<uint32_t>& indices);
+       const std::vector<uint32_t> &indices);
   void bindBuffers(vk::CommandBuffer commandBuffer);
   void render(vk::CommandBuffer commandBuffer);
   ~Mesh();

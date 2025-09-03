@@ -19,6 +19,8 @@ public:
   void ensureGraphicsPipeline(MeshType type);
   void renderMesh(vk::CommandBuffer commandBuffer, Mesh &mesh);
   void render(std::function<void(const vk::CommandBuffer &)> renderFunction);
+  vk::CommandBuffer startOneTimeSubmit();
+  void endOneTimeSubmit(vk::CommandBuffer commandBuffer);
   VmaAllocator getAllocator() { return m_Allocator; };
 
   ~Renderer();
