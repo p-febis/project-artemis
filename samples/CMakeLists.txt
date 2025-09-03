@@ -1,19 +1,20 @@
 function(add_bowstring_sample name)
-  add_executable(${name} ${ARGN})
+    add_executable(${name} ${ARGN})
 
-  target_link_libraries(${name} PRIVATE Bowstring)
+    target_link_libraries(${name} PRIVATE Bowstring)
 
-  set_target_properties(${name} PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-  )
+    set_target_properties(
+        ${name}
+        PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+    )
 
-  if(MSVC)
-    target_compile_options(${name} PRIVATE /W4 /permissive-)
-  else()
-    target_compile_options(${name} PRIVATE -Wall -Wextra -Wpedantic)
-  endif()
+    if(MSVC)
+        target_compile_options(${name} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${name} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
 endfunction()
 
 add_bowstring_sample(HelloScreen 01-hello-screen.cpp)
 add_bowstring_sample(HelloTriangle 02-hello-triangle.cpp)
+add_bowstring_sample(HelloDepthBuffering 03-hello-camera.cpp)

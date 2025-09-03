@@ -24,7 +24,10 @@ private:
 public:
   Application(ApplicationConfig &config);
   void setClearColor(glm::vec4 clearColor);
-  void createMesh(bowstring::MeshType type, std::vector<Vertex> vertices);
+  void createMesh(bowstring::MeshType type,
+                  const std::vector<Vertex> &vertices);
+  void createMesh(bowstring::MeshType type, const std::vector<Vertex> &vertices,
+                  const std::vector<uint32_t> &indices);
   void run();
 
   virtual void onInit();

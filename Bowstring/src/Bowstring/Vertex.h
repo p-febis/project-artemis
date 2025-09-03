@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Bowstring/pch.hpp"
-#include "glm/glm.hpp"
 
 namespace bowstring {
 

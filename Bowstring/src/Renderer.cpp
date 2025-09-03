@@ -128,6 +128,8 @@ void bowstring::Renderer::createSimplePipeline() {
           .setVertexAttributeDescriptions(attributeDescription.data(),
                                           attributeDescription.size())
           .setColorAttachments(&attachmentFormat, 1)
+          .setDepthAttachmentFormat(vk::Format::eD32Sfloat)
+          .setDepthStencilData(VK_TRUE, VK_TRUE, vk::CompareOp::eLess)
           .build(this->m_Device);
 
   this->m_SimplePipelineLayout = result.layout;
@@ -236,6 +238,46 @@ void bowstring::Renderer::createSwapchain(uint32_t width, uint32_t height) {
 
   BS_LOG_DEBUG("Destroyed old Swapchain");
 };
+
+void bowstring::Renderer::createDepthResources() {
+  vk::Format depthFormat = vk::Format::eD32Sfloat;
+
+  vk::ImageCreateInfo imageCreateInfo = {};
+  imageCreateInfo.imageType = vk::ImageType::e2D;
+  imageCreateInfo.format = depthFormat;
+  imageCreateInfo.extent =
+      vk::Extent3D(this->m_SwapchainContainer.extent.width,
+                   this->m_SwapchainContainer.extent.height, 1);
+  imageCreateInfo.mipLevels = 1;
+  imageCreateInfo.arrayLayers = 1;
+  imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+  imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+
+  VmaAllocationCreateInfo imageAllocationInfo = {};
+  imageAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
+  imageAllocationInfo.requiredFlags =
+      (uint32_t)vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+  vmaCreateImage(this->m_Allocator,
+                 reinterpret_cast<VkImageCreateInfo *>(&imageCreateInfo),
+                 &imageAllocationInfo,
+                 reinterpret_cast<VkImage *>(&this->m_DepthImage.image),
+                 &this->m_DepthImage.allocation, nullptr);
+
+  vk::ImageViewCreateInfo imageViewCreateInfo = {};
+  imageViewCreateInfo.viewType = vk::ImageViewType::e2D;
+  imageViewCreateInfo.image = this->m_DepthImage.image;
+  imageViewCreateInfo.format = depthFormat;
+  imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+  imageViewCreateInfo.subresourceRange.levelCount = 1;
+  imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+  imageViewCreateInfo.subresourceRange.layerCount = 1;
+  imageViewCreateInfo.subresourceRange.aspectMask =
+      vk::ImageAspectFlagBits::eDepth;
+
+  this->m_DepthImageView =
+      this->m_Device.createImageView(imageViewCreateInfo, nullptr);
+}
 
 void bowstring::Renderer::cleanupSwapchain() {
   for (auto imageView : this->m_SwapchainImageViews) {

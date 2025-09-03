@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Bowstring/AllocatedData.h"
 #include "Bowstring/MeshType.h"
 #include "Bowstring/VMA.h"
 #include "Bowstring/Window.h"
@@ -9,6 +10,7 @@
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 namespace bowstring {
+
 class Mesh;
 class Renderer {
 public:
@@ -49,7 +51,11 @@ private:
   vk::PipelineLayout m_SimplePipelineLayout;
   vk::Pipeline m_SimplePipeline;
 
+  AllocatedImage m_DepthImage;
+  vk::ImageView m_DepthImageView;
+
   void createSwapchain(uint32_t width, uint32_t height);
+  void createDepthResources();
   void createCommandPool();
   void createCommandBuffers();
   void createSyncObjects();

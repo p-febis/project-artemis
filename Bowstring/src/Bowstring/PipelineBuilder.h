@@ -25,6 +25,10 @@ public:
   PipelineBuilder &setVertexAttributeDescriptions(
       vk::VertexInputAttributeDescription *pAttributeDescriptions,
       uint32_t attributeDescriptionsCount);
+  PipelineBuilder &setDepthAttachmentFormat(vk::Format format);
+  PipelineBuilder &setDepthStencilData(bool bDepthTestEnable,
+                                       bool bDepthWriteEnable,
+                                       vk::CompareOp compareOp);
   PipelineBuilder &setColorAttachments(vk::Format *pColorAttachmentFormats,
                                        uint32_t colorAttachmentCount);
 
@@ -39,9 +43,10 @@ private:
   vk::PipelineColorBlendAttachmentState m_ColorBlendAttachmentState;
   vk::PipelineColorBlendStateCreateInfo m_ColorBlendingStateCreateInfo;
   vk::PipelineRenderingCreateInfo m_PiplineRenderingCreateInfo;
+  vk::PipelineDepthStencilStateCreateInfo m_DepthStencilCreateInfo;
   vk::PipelineLayoutCreateInfo m_PipelineLayoutCreateInfo;
 
-  vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+  vk::PipelineDynamicStateCreateInfo m_DynamicStateCreateInfo;
 
   std::vector<vk::PipelineShaderStageCreateInfo> m_ShaderStageCreateInfos;
 };

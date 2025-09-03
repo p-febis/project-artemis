@@ -27,6 +27,19 @@ bowstring::PipelineBuilder::PipelineBuilder() {
 
   this->m_PipelineLayoutCreateInfo.setLayoutCount = 0;
 }
+bowstring::PipelineBuilder &
+bowstring::PipelineBuilder::setDepthAttachmentFormat(vk::Format format) {
+  this->m_PiplineRenderingCreateInfo.depthAttachmentFormat = format;
+  return *this;
+};
+
+bowstring::PipelineBuilder &bowstring::PipelineBuilder::setDepthStencilData(
+    bool bDepthTestEnable, bool bDepthWriteEnable, vk::CompareOp compareOp) {
+  this->m_DepthStencilCreateInfo.depthTestEnable = bDepthTestEnable;
+  this->m_DepthStencilCreateInfo.depthWriteEnable = bDepthWriteEnable;
+  this->m_DepthStencilCreateInfo.depthCompareOp = compareOp;
+  return *this;
+};
 
 bowstring::PipelineBuilder &
 bowstring::PipelineBuilder::setShader(vk::ShaderStageFlagBits shaderStage,
@@ -44,8 +57,8 @@ bowstring::PipelineBuilder::setShader(vk::ShaderStageFlagBits shaderStage,
 
 bowstring::PipelineBuilder &bowstring::PipelineBuilder::setDynamicStates(
     const vk::DynamicState *pDynamicStates, uint32_t dynamicStatesCount) {
-  dynamicStateCreateInfo.dynamicStateCount = dynamicStatesCount;
-  dynamicStateCreateInfo.pDynamicStates = pDynamicStates;
+  m_DynamicStateCreateInfo.dynamicStateCount = dynamicStatesCount;
+  m_DynamicStateCreateInfo.pDynamicStates = pDynamicStates;
 
   return *this;
 };
@@ -106,10 +119,13 @@ bowstring::PipelineBuilder::build(vk::Device &device) {
       &this->m_RasterizationStateCreateInfo;
   pipelineCreateInfo.pMultisampleState = &this->m_MultiSampingStateCreateInfo;
   pipelineCreateInfo.pColorBlendState = &this->m_ColorBlendingStateCreateInfo;
-  pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+  pipelineCreateInfo.pDynamicState = &this->m_DynamicStateCreateInfo;
+  pipelineCreateInfo.pDepthStencilState = &this->m_DepthStencilCreateInfo;
   pipelineCreateInfo.layout = result.layout;
   pipelineCreateInfo.subpass = 0;
-  result.pipeline = device.createGraphicsPipelines(
-      VK_NULL_HANDLE, pipelineCreateInfo, nullptr).value.front();
+  result.pipeline =
+      device
+          .createGraphicsPipelines(VK_NULL_HANDLE, pipelineCreateInfo, nullptr)
+          .value.front();
   return result;
 };
