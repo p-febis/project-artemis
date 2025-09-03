@@ -280,6 +280,9 @@ void bowstring::Renderer::createDepthResources() {
 }
 
 void bowstring::Renderer::cleanupSwapchain() {
+  this->m_Device.destroyImageView(this->m_DepthImageView);
+  vmaDestroyImage(this->m_Allocator, this->m_DepthImage.image,
+                  this->m_DepthImage.allocation);
   for (auto imageView : this->m_SwapchainImageViews) {
     this->m_Device.destroyImageView(imageView);
   }
