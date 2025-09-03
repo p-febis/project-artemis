@@ -1,6 +1,5 @@
 #include "Bowstring/Window.h"
 #include "Bowstring/Logging.h"
-#include "Bowstring/pch.hpp"
 #include <stdexcept>
 
 bowstring::Window::Window(uint32_t width, uint32_t height, const char *title)
@@ -11,7 +10,7 @@ bowstring::Window::Window(uint32_t width, uint32_t height, const char *title)
   }
 
   BS_LOG_DEBUG("Creating Window(title=\"{}\", width={}, height={})", title,
-               height, width);
+               width, height);
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
