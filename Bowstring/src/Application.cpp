@@ -24,7 +24,7 @@ void bowstring::Application::run() {
 };
 
 void bowstring::Application::createMesh(bowstring::MeshType type,
-                                        const std::vector<Vertex>& vertices) {
+                                        const std::vector<Vertex> &vertices) {
   const auto entity = this->m_Registry.create();
   this->m_Registry.emplace<Mesh>(entity, m_Renderer, std::move(vertices));
   this->m_Renderer.ensureGraphicsPipeline(type);
@@ -45,5 +45,5 @@ void bowstring::Application::setClearColor(glm::vec4 clearColor) {
 };
 
 // VIRTUALS
-void bowstring::Application::onInit() {};
-void bowstring::Application::onUpdate(float) {};
+void bowstring::Application::onInit(){};
+void bowstring::Application::onUpdate(float){};

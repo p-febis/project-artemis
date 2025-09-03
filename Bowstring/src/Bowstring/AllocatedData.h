@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pch.hpp"
 #include "VMA.h"
+#include "pch.hpp"
 
 namespace bowstring {
 struct AllocatedBuffer {
