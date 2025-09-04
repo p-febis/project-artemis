@@ -17,4 +17,4 @@ endfunction()
 
 add_bowstring_sample(HelloScreen 01-hello-screen.cpp)
 add_bowstring_sample(HelloTriangle 02-hello-triangle.cpp)
-add_bowstring_sample(HelloDepthBuffering 03-hello-camera.cpp)
+add_bowstring_sample(HelloCamera 03-hello-camera.cpp)

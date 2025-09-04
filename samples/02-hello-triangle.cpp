@@ -15,8 +15,8 @@ public:
         {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
 
     auto meshEntity = this->createEntity();
-    this->getpRenderer()->ensureGraphicsPipeline(bowstring::MeshType::eBasic);
-    auto mesh = std::make_shared<bowstring::Mesh>(this->getpRenderer(), vertices);
+    this->getRenderer()->ensureGraphicsPipeline(bowstring::MeshType::eBasic);
+    auto mesh = std::make_shared<bowstring::Mesh>(this->getRenderer(), vertices);
     meshEntity.addComponent<bowstring::MeshComponent>({mesh});
   }
 

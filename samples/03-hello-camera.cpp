@@ -21,10 +21,10 @@ public:
         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}};
 
     const std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-    this->getpRenderer()->ensureGraphicsPipeline(bowstring::MeshType::eBasic);
+    this->getRenderer()->ensureGraphicsPipeline(bowstring::MeshType::eBasic);
 
     auto renderingEntity = this->createEntity();
-    auto mesh = std::make_shared<bowstring::Mesh>(this->getpRenderer(),
+    auto mesh = std::make_shared<bowstring::Mesh>(this->getRenderer(),
                                                   vertices, indices);
     renderingEntity.addComponent<bowstring::MeshComponent>({mesh});
   }
@@ -36,7 +36,7 @@ int main() {
   auto appConfig = bowstring::ApplicationConfig{};
   appConfig.width = 800;
   appConfig.height = 600;
-  appConfig.title = "HelloDepthBuffering";
+  appConfig.title = "HelloCamera";
 
   HelloTriangle app(appConfig);
 

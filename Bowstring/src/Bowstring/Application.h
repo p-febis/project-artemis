@@ -24,7 +24,7 @@ public:
   Application(ApplicationConfig &config);
   Entity createEntity();
   void setClearColor(glm::vec4 clearColor);
-  Renderer *getpRenderer() { return &this->m_Renderer; };
+  Renderer *getRenderer() { return &this->m_Renderer; };
   void run();
 
   virtual void onInit();
