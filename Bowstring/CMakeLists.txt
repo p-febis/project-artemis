@@ -79,11 +79,22 @@ target_link_libraries(
 )
 
 add_bowstring_module(
+  Entity
+  src/Bowstring/Entity.h
+  src/Entity.cpp
+)
+
+target_link_libraries(Bowstring_Entity PUBLIC flecs)
+
+add_bowstring_module(
   Application
   src/Bowstring/Application.h
   src/Application.cpp
 )
-target_link_libraries(Bowstring_Application PUBLIC Bowstring_Renderer glm flecs)
+target_link_libraries(
+    Bowstring_Application
+    PUBLIC Bowstring_Renderer Bowstring_Entity glm
+)
 
 add_bowstring_module(
   Mesh

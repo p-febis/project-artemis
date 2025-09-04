@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Bowstring/Vertex.h"
+#include "Bowstring/Entity.h"
 #include "Renderer.h"
 #include "Window.h"
 #include <cstdint>
@@ -22,11 +22,9 @@ private:
 
 public:
   Application(ApplicationConfig &config);
+  Entity createEntity();
   void setClearColor(glm::vec4 clearColor);
-  void createMesh(bowstring::MeshType type,
-                  const std::vector<Vertex> &vertices);
-  void createMesh(bowstring::MeshType type, const std::vector<Vertex> &vertices,
-                  const std::vector<uint32_t> &indices);
+  Renderer *getpRenderer() { return &this->m_Renderer; };
   void run();
 
   virtual void onInit();

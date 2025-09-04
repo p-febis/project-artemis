@@ -1,4 +1,5 @@
 #include "Bowstring/Application.h"
+#include "Bowstring/Entity.h"
 #include "Bowstring/Logging.h"
 #include "Bowstring/Mesh.h"
 
@@ -7,6 +8,9 @@ bowstring::Application::Application(ApplicationConfig &config)
       m_Window(m_Config.width, m_Config.height, m_Config.title) {
   m_Renderer.initialize(this->m_Window);
 }
+  bowstring::Entity bowstring::Application::createEntity() {
+    return bowstring::Entity(this->m_World.entity());
+  };
 
 void bowstring::Application::run() {
   this->onInit();
@@ -23,22 +27,6 @@ void bowstring::Application::run() {
   });
 
   this->m_Window.mainLoop([this] { this->m_World.progress(); });
-};
-
-void bowstring::Application::createMesh(bowstring::MeshType type,
-                                        const std::vector<Vertex> &vertices) {
-  const auto entity = this->m_World.entity();
-  entity.set(MeshComponent{std::make_shared<Mesh>(&m_Renderer, vertices)});
-  this->m_Renderer.ensureGraphicsPipeline(type);
-};
-
-void bowstring::Application::createMesh(bowstring::MeshType type,
-                                        const std::vector<Vertex> &vertices,
-                                        const std::vector<uint32_t> &indices) {
-  const auto entity = this->m_World.entity();
-  entity.set(
-      MeshComponent{std::make_shared<Mesh>(&m_Renderer, vertices, indices)});
-  this->m_Renderer.ensureGraphicsPipeline(type);
 };
 
 void bowstring::Application::setClearColor(glm::vec4 clearColor) {

@@ -1,4 +1,7 @@
 #include "Bowstring/Application.h"
+#include "Bowstring/Mesh.h"
+#include "Bowstring/MeshType.h"
+#include <memory>
 
 class HelloTriangle : public bowstring::Application {
   using bowstring::Application::Application;
@@ -11,7 +14,10 @@ public:
         {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
         {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
 
-    this->createMesh(bowstring::MeshType::eBasic, vertices);
+    auto meshEntity = this->createEntity();
+    this->getpRenderer()->ensureGraphicsPipeline(bowstring::MeshType::eBasic);
+    auto mesh = std::make_shared<bowstring::Mesh>(this->getpRenderer(), vertices);
+    meshEntity.addComponent<bowstring::MeshComponent>({mesh});
   }
 
   void onUpdate(float) override {}

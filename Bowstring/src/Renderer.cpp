@@ -420,6 +420,7 @@ void bowstring::Renderer::beginRecordCommandBuffer(
 
   commandBuffer.beginRendering(renderingInfo);
 
+  // TODO: Make the bound pipeline the resposibilty of the mesh
   if (this->m_SimplePipeline != VK_NULL_HANDLE) {
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
                                this->m_SimplePipeline);
