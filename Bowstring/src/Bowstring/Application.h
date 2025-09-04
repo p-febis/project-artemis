@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Bowstring/pch.hpp"
-#include "Mesh.h"
+#include "Bowstring/Vertex.h"
 #include "Renderer.h"
 #include "Window.h"
 #include <cstdint>
-#include <entt/entt.hpp>
+#include <flecs.h>
 
 namespace bowstring {
 struct ApplicationConfig {
@@ -19,7 +18,7 @@ private:
   ApplicationConfig m_Config;
   Window m_Window;
   Renderer m_Renderer;
-  entt::registry m_Registry;
+  flecs::world m_World;
 
 public:
   Application(ApplicationConfig &config);

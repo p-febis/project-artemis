@@ -3,24 +3,24 @@
 #include "Bowstring/Logging.h"
 #include "Bowstring/Renderer.h"
 
-bowstring::Mesh::Mesh(Renderer &renderer, const std::vector<Vertex> &vertices)
-    : m_Renderer(renderer), m_Vertices(vertices) {
+bowstring::Mesh::Mesh(Renderer *pRenderer, const std::vector<Vertex> &vertices)
+    : m_pRenderer(pRenderer), m_Vertices(vertices) {
 
   BS_LOG_DEBUG("[Mesh] vertices={} (bytes={}) allocator={}", m_Vertices.size(),
                m_Vertices.size() * sizeof(Vertex),
-               (void *)m_Renderer.getAllocator());
+               (void *)m_pRenderer->getAllocator());
 
   this->createVertexBuffer();
 }
 
-bowstring::Mesh::Mesh(Renderer &renderer, const std::vector<Vertex> &vertices,
+bowstring::Mesh::Mesh(Renderer *pRenderer, const std::vector<Vertex> &vertices,
                       const std::vector<uint32_t> &indices)
-    : m_Renderer(renderer), m_Vertices(vertices), m_Indices(indices) {
+    : m_pRenderer(pRenderer), m_Vertices(vertices), m_Indices(indices) {
 
   BS_LOG_DEBUG(
       "[Mesh] vertices={} (bytes={}) indices={} (bytes={}) allocator={}",
       m_Vertices.size(), m_Vertices.size() * sizeof(Vertex), m_Indices.size(),
-      m_Indices.size() * sizeof(uint32_t), (void *)m_Renderer.getAllocator());
+      m_Indices.size() * sizeof(uint32_t), (void *)m_pRenderer->getAllocator());
 
   this->createVertexBuffer();
   this->createIndexBuffer();
@@ -29,14 +29,14 @@ bowstring::Mesh::Mesh(Renderer &renderer, const std::vector<Vertex> &vertices,
 void bowstring::Mesh::copyBuffer(vk::Buffer sourceBuffer,
                                  vk::Buffer destinationBuffer,
                                  vk::DeviceSize size) {
-  vk::CommandBuffer commandBuffer = this->m_Renderer.startOneTimeSubmit();
+  vk::CommandBuffer commandBuffer = this->m_pRenderer->startOneTimeSubmit();
 
   vk::BufferCopy copyRegion{};
   copyRegion.size = size;
 
   commandBuffer.copyBuffer(sourceBuffer, destinationBuffer, 1, &copyRegion);
 
-  this->m_Renderer.endOneTimeSubmit(commandBuffer);
+  this->m_pRenderer->endOneTimeSubmit(commandBuffer);
 }
 bowstring::AllocatedBuffer
 bowstring::Mesh::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
@@ -51,7 +51,7 @@ bowstring::Mesh::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
   allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
   allocationCreateInfo.flags = allocationFlags;
 
-  vmaCreateBuffer(this->m_Renderer.getAllocator(),
+  vmaCreateBuffer(this->m_pRenderer->getAllocator(),
                   reinterpret_cast<VkBufferCreateInfo *>(&bufferCreateInfo),
                   &allocationCreateInfo,
                   reinterpret_cast<VkBuffer *>(&createdBuffer.buffer),
@@ -61,7 +61,7 @@ bowstring::Mesh::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
 };
 
 void bowstring::Mesh::createVertexBuffer() {
-  auto allocator = this->m_Renderer.getAllocator();
+  auto allocator = this->m_pRenderer->getAllocator();
   vk::DeviceSize bufferSize(sizeof(this->m_Vertices[0]) *
                             this->m_Vertices.size());
 
@@ -85,7 +85,7 @@ void bowstring::Mesh::createVertexBuffer() {
 }
 
 void bowstring::Mesh::createIndexBuffer() {
-  VmaAllocator allocator = this->m_Renderer.getAllocator();
+  VmaAllocator allocator = this->m_pRenderer->getAllocator();
 
   vk::DeviceSize bufferSize(sizeof(this->m_Indices[0]) *
                             this->m_Indices.size());
@@ -133,11 +133,11 @@ void bowstring::Mesh::render(vk::CommandBuffer commandBuffer) {
 
 bowstring::Mesh::~Mesh() {
   if (this->m_IndexBuffer.buffer != VK_NULL_HANDLE) {
-    vmaDestroyBuffer(this->m_Renderer.getAllocator(),
+    vmaDestroyBuffer(this->m_pRenderer->getAllocator(),
                      this->m_IndexBuffer.buffer,
                      this->m_IndexBuffer.allocation);
   }
 
-  vmaDestroyBuffer(this->m_Renderer.getAllocator(), this->m_VertexBuffer.buffer,
+  vmaDestroyBuffer(this->m_pRenderer->getAllocator(), this->m_VertexBuffer.buffer,
                    this->m_VertexBuffer.allocation);
 }

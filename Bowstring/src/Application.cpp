@@ -11,31 +11,33 @@ bowstring::Application::Application(ApplicationConfig &config)
 void bowstring::Application::run() {
   this->onInit();
   BS_LOG_DEBUG("Starting Application...");
-  this->m_Window.mainLoop([this] {
-    auto view = this->m_Registry.view<Mesh>();
-    this->m_Renderer.render([&](vk::CommandBuffer commandBuffer) {
-      for (auto entity : view) {
-        auto &mesh = view.get<Mesh>(entity);
-        mesh.bindBuffers(commandBuffer);
-        mesh.render(commandBuffer);
-      }
+
+  this->m_World.system<MeshComponent>().each([this](
+                                                 MeshComponent &meshContainer) {
+    this->m_Renderer.render([meshContainer](vk::CommandBuffer commandBuffer) {
+      if (!meshContainer.mesh)
+        return;
+      meshContainer.mesh->bindBuffers(commandBuffer);
+      meshContainer.mesh->render(commandBuffer);
     });
   });
+
+  this->m_Window.mainLoop([this] { this->m_World.progress(); });
 };
 
 void bowstring::Application::createMesh(bowstring::MeshType type,
                                         const std::vector<Vertex> &vertices) {
-  const auto entity = this->m_Registry.create();
-  this->m_Registry.emplace<Mesh>(entity, m_Renderer, std::move(vertices));
+  const auto entity = this->m_World.entity();
+  entity.set(MeshComponent{std::make_shared<Mesh>(&m_Renderer, vertices)});
   this->m_Renderer.ensureGraphicsPipeline(type);
 };
 
 void bowstring::Application::createMesh(bowstring::MeshType type,
                                         const std::vector<Vertex> &vertices,
                                         const std::vector<uint32_t> &indices) {
-  const auto entity = this->m_Registry.create();
-  this->m_Registry.emplace<Mesh>(entity, m_Renderer, std::move(vertices),
-                                 std::move(indices));
+  const auto entity = this->m_World.entity();
+  entity.set(
+      MeshComponent{std::make_shared<Mesh>(&m_Renderer, vertices, indices)});
   this->m_Renderer.ensureGraphicsPipeline(type);
 };
 
@@ -45,5 +47,5 @@ void bowstring::Application::setClearColor(glm::vec4 clearColor) {
 };
 
 // VIRTUALS
-void bowstring::Application::onInit(){};
-void bowstring::Application::onUpdate(float){};
+void bowstring::Application::onInit() {};
+void bowstring::Application::onUpdate(float) {};

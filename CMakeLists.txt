@@ -9,7 +9,7 @@ set_target_properties(vk-bootstrap PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(thirdparty/glfw)
 add_subdirectory(thirdparty/glm)
-add_subdirectory(thirdparty/entt)
+add_subdirectory(thirdparty/flecs)
 add_subdirectory(thirdparty/VulkanMemoryAllocator)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
